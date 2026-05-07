@@ -218,14 +218,14 @@ textarea.body-input { flex: 1; width: 100%; padding: 16px; background: var(--pap
     <div class="chat-pane hidden" id="chatPane">
       <div class="chat-messages" id="chatMessages">
         <div class="chat-msg assistant">
-          記事について一緒に整理しましょう。<br>
-          アイデアの壁打ち、構成の相談、文章の磨き込み、何でも。<br><br>
-          <small style="color:var(--gray);font-family:'JetBrains Mono',monospace;font-size:10px;">Ctrl+Enter で送信</small>
+          記事の相談はclaude.aiで。<br>
+          下の欄に相談内容を書いて「claude.aiで相談」を押すと、現在の記事内容ごとコピーされます。<br><br>
+          <small style="color:var(--gray);font-family:'JetBrains Mono',monospace;font-size:10px;">claude.aiに貼り付けて送信してください</small>
         </div>
       </div>
       <div class="chat-input-row">
-        <textarea class="chat-input" id="chatInput" placeholder="AIに相談する…" rows="2"></textarea>
-        <button class="chat-send-btn" id="btnChatSend">送信</button>
+        <textarea class="chat-input" id="chatInput" placeholder="相談内容を書く…（例：タイトルを考えて、見出しを整理して）" rows="2"></textarea>
+        <button class="chat-send-btn" id="btnChatSend">claude.aiへ</button>
       </div>
     </div>
   </div>
@@ -247,14 +247,6 @@ textarea.body-input { flex: 1; width: 100%; padding: 16px; background: var(--pap
 <div id="panel-settings" class="panel">
   <div class="container">
     <h2 class="section-title">設定 <span class="section-title-en">Settings</span></h2>
-    <div class="settings-section">
-      <h3>Claude API キー</h3>
-      <p class="setting-desc">AIチャット・音声まとめ機能に使用します。ブラウザのローカルストレージにのみ保存されます。</p>
-      <div class="field">
-        <label>API Key</label>
-        <input type="password" id="settingApiKey" placeholder="sk-ant-…" autocomplete="off">
-      </div>
-    </div>
     <div class="settings-section">
       <h3>連載の設定</h3>
       <div class="field">
@@ -323,19 +315,20 @@ textarea.body-input { flex: 1; width: 100%; padding: 16px; background: var(--pap
       <textarea class="voice-transcript" id="voiceTranscript" placeholder="録音すると、ここに文字が出てきます…"></textarea>
       <div style="display:flex;gap:8px;margin-top:6px;">
         <button class="tb-btn" id="btnClearTranscript">クリア</button>
-        <button class="tb-btn" id="btnSummarize" style="background:var(--ink);color:var(--paper);border-color:var(--ink);flex:1;">✦ AIで記事にまとめる</button>
+        <button class="tb-btn" id="btnSummarize" style="background:var(--ink);color:var(--paper);border-color:var(--ink);flex:1;">✦ claude.aiで記事にする</button>
+      </div>
+      <div style="margin-top:8px;padding:10px 12px;border:1px dashed var(--gray-soft);font-size:11px;color:var(--gray);font-family:'JetBrains Mono',monospace;line-height:1.7;">
+        ① ボタンを押すとプロンプトがコピーされます<br>
+        ② claude.ai が開くので貼り付けて送信<br>
+        ③ できた記事を下の欄に貼り付けて「エディタに送る」
       </div>
     </div>
-    <div id="voiceResultSection" class="hidden">
-      <span class="voice-section-label">AIがまとめた記事</span>
-      <textarea class="voice-result" id="voiceResult"></textarea>
+    <div id="voiceResultSection">
+      <span class="voice-section-label">claude.aiからコピーした記事を貼り付ける</span>
+      <textarea class="voice-result" id="voiceResult" placeholder="claude.aiで生成した記事をここに貼り付けてください…"></textarea>
       <div style="display:flex;gap:8px;margin-top:6px;">
-        <button class="tb-btn" id="btnCopyResult" style="flex:1;">クリップボードにコピー</button>
         <button class="tb-btn" id="btnSendToEditor" style="flex:1;background:var(--green);color:var(--paper);border-color:var(--green);">エディタに送る</button>
       </div>
-    </div>
-    <div id="voiceNoApi" class="hidden" style="margin-top:14px;padding:12px;border:1px dashed var(--gray-soft);font-size:12px;color:var(--gray);font-family:'JetBrains Mono',monospace;line-height:1.7;">
-      AIまとめにはClaude APIキーが必要です。設定タブから入力してください。
     </div>
   </div>
 </div>
@@ -550,38 +543,14 @@ function renderChatMessages() {
 async function sendChat() {
   const inputEl = document.getElementById('chatInput');
   const userMsg = inputEl.value.trim();
-  if (!userMsg || !currentArticleId) return;
-  const s = loadSettings();
-  if (!s.apiKey) { toast('設定画面でAPIキーを入力してください', 'var(--accent)'); showPanel('settings'); return; }
-  inputEl.value = '';
-  document.getElementById('btnChatSend').disabled = true;
-  const chats = loadChats();
-  if (!chats[currentArticleId]) chats[currentArticleId] = [];
-  chats[currentArticleId].push({ role: 'user', content: userMsg });
-  saveChats(chats); renderChatMessages();
-  const container = document.getElementById('chatMessages');
-  const thinking = document.createElement('div');
-  thinking.className = 'chat-thinking';
-  thinking.innerHTML = '<span class="spinner"></span>考えています…';
-  container.appendChild(thinking); container.scrollTop = container.scrollHeight;
+  if (!userMsg) return;
   const title = document.getElementById('editorTitle').value;
   const body  = document.getElementById('editorBody').value;
-  const system = `あなたはnote.comの連載「東京から南小国へ」を書く日本人ライターのアシスタントです。\n連載はvol形式のタイトル、見出し2〜4個、写真プレースホルダー [写真：〇〇]、ハッシュタグ5〜7個、1500〜2500字の記事スタイルで書いています。\n${title ? `現在の記事タイトル：「${title}」` : ''}\n${body ? `現在の本文（冒頭500文字）：\n${body.slice(0, 500)}` : '記事はまだ空です。'}\n記事の内容を整理・磨くために、具体的で簡潔なアドバイスや文章案を日本語で提案してください。見出し案、写真プレースホルダーの位置、ハッシュタグの候補なども含めて提案できます。提案する文章は、そのまま本文に挿入できる形にしてください。`;
-  const messages = (loadChats()[currentArticleId] || []).slice(-12).map(m => ({ role: m.role, content: m.content }));
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
-      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 1024, system, messages }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-    const c = loadChats(); c[currentArticleId].push({ role: 'assistant', content: data.content[0].text }); saveChats(c);
-  } catch (err) {
-    const c = loadChats(); if (!c[currentArticleId]) c[currentArticleId] = [];
-    c[currentArticleId].push({ role: 'assistant', content: `⚠️ エラー: ${err.message}` }); saveChats(c);
-  }
-  thinking.remove(); document.getElementById('btnChatSend').disabled = false; renderChatMessages();
+  const prompt = `連載「東京から南小国へ」の記事について相談です。\n${title ? `タイトル：「${title}」\n` : ''}${body ? `本文（冒頭500字）：\n${body.slice(0, 500)}\n\n` : ''}相談：${userMsg}`;
+  try { await navigator.clipboard.writeText(prompt); } catch { const ta = document.createElement('textarea'); ta.value = prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  inputEl.value = '';
+  window.open('https://claude.ai', '_blank');
+  toast('コピーしました。claude.aiに貼り付けてください');
 }
 
 function handleFiles(files) {
@@ -641,7 +610,6 @@ function showPanel(name) {
 }
 function renderSettingsPanel() {
   const s = loadSettings();
-  document.getElementById('settingApiKey').value      = s.apiKey      || '';
   document.getElementById('settingSeriesName').value  = s.seriesName  || '';
   document.getElementById('settingNoteUrl').value     = s.noteUrl     || '';
   document.getElementById('settingSeriesStart').value = s.seriesStart || '';
@@ -755,7 +723,7 @@ uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.cl
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
 uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
 document.getElementById('btnSaveSettings').addEventListener('click', () => {
-  const s = { apiKey: document.getElementById('settingApiKey').value.trim(), seriesName: document.getElementById('settingSeriesName').value.trim(), noteUrl: document.getElementById('settingNoteUrl').value.trim(), seriesStart: document.getElementById('settingSeriesStart').value, ghToken: document.getElementById('settingGhToken').value.trim(), ghUser: document.getElementById('settingGhUser').value.trim(), ghRepo: document.getElementById('settingGhRepo').value.trim() };
+  const s = { seriesName: document.getElementById('settingSeriesName').value.trim(), noteUrl: document.getElementById('settingNoteUrl').value.trim(), seriesStart: document.getElementById('settingSeriesStart').value, ghToken: document.getElementById('settingGhToken').value.trim(), ghUser: document.getElementById('settingGhUser').value.trim(), ghRepo: document.getElementById('settingGhRepo').value.trim() };
   saveSettings(s); renderHeader();
   if (s.ghToken && s.ghUser && s.ghRepo) syncAll();
   toast('設定を保存しました');
@@ -840,23 +808,10 @@ document.getElementById('voiceTranscript').addEventListener('input', function ()
 document.getElementById('btnSummarize').addEventListener('click', async () => {
   const transcript = document.getElementById('voiceTranscript').value.trim();
   if (!transcript) { toast('書き起こしが空です', 'var(--accent)'); return; }
-  const s = loadSettings();
-  if (!s.apiKey) { document.getElementById('voiceNoApi').classList.remove('hidden'); return; }
-  document.getElementById('voiceNoApi').classList.add('hidden');
-  const btn = document.getElementById('btnSummarize'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>まとめています…';
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
-      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 4096, system: `あなたはnote.comの連載「東京から南小国へ」を書く日本人ライターのアシスタントです。ユーザーが話した内容の書き起こしを、連載記事として仕上げてください。\n\n【出力フォーマット】\n1. タイトル行（必須）：「タイトル：東京から南小国へ vol.XX　〇〇〇〇」の形で1行\n2. 本文（1500〜2500字）：\n   - 見出し（## ）を2〜4個つけて構成する\n   - 写真プレースホルダー [写真：〇〇の様子] を2〜3箇所挿入する\n   - ですます体のカジュアルなnote.com記事調\n   - 話し言葉を自然な書き言葉に変換し、段落を整理する\n   - 内容は削らず、意味が伝わるように整える\n3. 末尾にハッシュタグを5〜7個（例：#地方移住 #南小国 #田舎暮らし）\n\nタイトルの後は本文のみ出力し、余計な説明文は不要です。`, messages: [{ role: 'user', content: `書き起こし:\n${transcript}` }] }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-    document.getElementById('voiceResult').value = data.content[0].text;
-    document.getElementById('voiceResultSection').classList.remove('hidden');
-    document.getElementById('voiceResultSection').scrollIntoView({ behavior: 'smooth' });
-  } catch (err) { toast('エラー: ' + err.message, 'var(--accent)'); }
-  btn.disabled = false; btn.innerHTML = '✦ AIで記事にまとめる';
+  const prompt = `以下の音声書き起こしを、note.comの連載「東京から南小国へ」の記事に仕上げてください。\n\n【フォーマット】\n- タイトル：東京から南小国へ vol.XX　〇〇〇〇（冒頭1行）\n- 本文1500〜2500字（ですます体）\n- 見出し（##）を2〜4個\n- 写真プレースホルダー [写真：〇〇の様子] を2〜3箇所\n- 末尾にハッシュタグ5〜7個\n\n【書き起こし】\n${transcript}`;
+  try { await navigator.clipboard.writeText(prompt); } catch { const ta = document.createElement('textarea'); ta.value = prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  window.open('https://claude.ai', '_blank');
+  toast('プロンプトをコピーしました。claude.aiに貼り付けてください');
 });
 document.getElementById('btnCopyResult').addEventListener('click', async () => {
   const text = document.getElementById('voiceResult').value;
