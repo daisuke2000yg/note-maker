@@ -566,7 +566,7 @@ async function sendChat() {
   container.appendChild(thinking); container.scrollTop = container.scrollHeight;
   const title = document.getElementById('editorTitle').value;
   const body  = document.getElementById('editorBody').value;
-  const system = `あなたはnote.comで連載を書く日本人ライターのアシスタントです。\n${title ? `現在の記事タイトル：「${title}」` : ''}\n${body ? `現在の本文（冒頭500文字）：\n${body.slice(0, 500)}` : '記事はまだ空です。'}\n記事の内容を整理・磨くために、具体的で簡潔なアドバイスや文章案を日本語で提案してください。提案する文章は、そのまま本文に挿入できる形にしてください。`;
+  const system = `あなたはnote.comの連載「東京から南小国へ」を書く日本人ライターのアシスタントです。\n連載はvol形式のタイトル、見出し2〜4個、写真プレースホルダー [写真：〇〇]、ハッシュタグ5〜7個、1500〜2500字の記事スタイルで書いています。\n${title ? `現在の記事タイトル：「${title}」` : ''}\n${body ? `現在の本文（冒頭500文字）：\n${body.slice(0, 500)}` : '記事はまだ空です。'}\n記事の内容を整理・磨くために、具体的で簡潔なアドバイスや文章案を日本語で提案してください。見出し案、写真プレースホルダーの位置、ハッシュタグの候補なども含めて提案できます。提案する文章は、そのまま本文に挿入できる形にしてください。`;
   const messages = (loadChats()[currentArticleId] || []).slice(-12).map(m => ({ role: m.role, content: m.content }));
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -848,7 +848,7 @@ document.getElementById('btnSummarize').addEventListener('click', async () => {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
-      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 2048, system: `あなたはnote.comで連載を書く日本人ライターのアシスタントです。ユーザーが話した内容の書き起こしを、note.com の記事として読みやすく仕上げてください。\nルール：\n- 冒頭に記事タイトルを「タイトル：○○○」の形で1行書く\n- 話し言葉を自然な書き言葉に変換する\n- 段落を整理して読みやすくする\n- 内容は削らず、意味が伝わるように整える\n- 体裁はnote.comのカジュアルな記事調（ですます体）\n- タイトルの後は本文のみ（余計な説明文は不要）`, messages: [{ role: 'user', content: `書き起こし:\n${transcript}` }] }),
+      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 4096, system: `あなたはnote.comの連載「東京から南小国へ」を書く日本人ライターのアシスタントです。ユーザーが話した内容の書き起こしを、連載記事として仕上げてください。\n\n【出力フォーマット】\n1. タイトル行（必須）：「タイトル：東京から南小国へ vol.XX　〇〇〇〇」の形で1行\n2. 本文（1500〜2500字）：\n   - 見出し（## ）を2〜4個つけて構成する\n   - 写真プレースホルダー [写真：〇〇の様子] を2〜3箇所挿入する\n   - ですます体のカジュアルなnote.com記事調\n   - 話し言葉を自然な書き言葉に変換し、段落を整理する\n   - 内容は削らず、意味が伝わるように整える\n3. 末尾にハッシュタグを5〜7個（例：#地方移住 #南小国 #田舎暮らし）\n\nタイトルの後は本文のみ出力し、余計な説明文は不要です。`, messages: [{ role: 'user', content: `書き起こし:\n${transcript}` }] }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
