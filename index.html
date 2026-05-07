@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1d1f">
+<title>note-maker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #1a1d1f;
+  --paper: #f5f1e8;
+  --paper-deep: #ede6d3;
+  --paper-lite: #faf6ec;
+  --accent: #8b2c1d;
+  --gold: #b08d4f;
+  --green: #4a6b3a;
+  --red: #a82e1f;
+  --gray: #6b6258;
+  --gray-soft: #968b7e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Noto Sans JP', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  height: 100%;
+  overflow-x: hidden;
+}
+body { padding-bottom: 66px; min-height: 100vh; }
+header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 11px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.brand { font-family: 'Shippori Mincho', serif; font-size: 17px; font-weight: 600; letter-spacing: 0.05em; }
+.brand-sub { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.18em; color: rgba(245,241,232,0.45); margin-top: 2px; }
+.header-badge { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gold); border: 1px solid var(--gold); padding: 3px 8px; letter-spacing: 0.1em; }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--paper-deep); border-top: 1.5px solid var(--ink); display: flex; z-index: 50; padding-bottom: env(safe-area-inset-bottom); }
+.nav-btn { flex: 1; background: none; border: none; padding: 9px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; color: var(--gray); transition: color 0.15s; font-family: 'Noto Sans JP', sans-serif; }
+.nav-btn .icon { font-size: 18px; line-height: 1; }
+.nav-btn .lbl  { font-size: 10px; font-weight: 500; }
+.nav-btn.active { color: var(--accent); }
+.panel { display: none; }
+.panel.active { display: block; }
+.container { max-width: 800px; margin: 0 auto; padding: 16px; }
+.section-title { font-family: 'Shippori Mincho', serif; font-size: 17px; font-weight: 600; border-bottom: 1.5px solid var(--ink); padding-bottom: 8px; margin-bottom: 16px; }
+.section-title-en { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.18em; color: var(--gray); display: block; margin-top: 2px; text-transform: uppercase; }
+.article-card { background: var(--paper-deep); border: 1px solid var(--ink); padding: 13px 15px; margin-bottom: 10px; cursor: pointer; transition: background 0.12s; }
+.article-card:hover, .article-card:active { background: var(--ink); color: var(--paper); }
+.article-card:hover .ac-num, .article-card:active .ac-num { color: var(--gold); }
+.article-card:hover .ac-preview, .article-card:active .ac-preview { color: rgba(245,241,232,0.6); }
+.ac-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.ac-num { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gold); letter-spacing: 0.08em; flex-shrink: 0; }
+.ac-title { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 600; flex: 1; line-height: 1.4; }
+.ac-status { font-family: 'JetBrains Mono', monospace; font-size: 8px; letter-spacing: 0.08em; padding: 2px 5px; border: 1px solid; flex-shrink: 0; text-transform: uppercase; }
+.ac-status.draft     { color: var(--gray);  border-color: var(--gray-soft); }
+.ac-status.ready     { color: var(--green); border-color: var(--green); }
+.ac-status.published { color: var(--gold);  border-color: var(--gold); }
+.ac-preview { font-size: 12px; color: var(--gray); line-height: 1.5; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.fab { position: fixed; bottom: 78px; right: 18px; width: 50px; height: 50px; background: var(--ink); color: var(--paper); border: none; font-size: 26px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 45; box-shadow: 3px 3px 0 var(--gray-soft); }
+.fab:active { box-shadow: none; transform: translate(3px, 3px); }
+.empty-state { text-align: center; padding: 56px 16px; color: var(--gray); }
+.empty-state .big { font-family: 'Shippori Mincho', serif; font-size: 20px; margin-bottom: 8px; }
+.empty-state .sub { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; }
+#panel-editor { display: none; flex-direction: column; }
+#panel-editor.active { display: flex; height: calc(100vh - 120px); }
+.editor-header { padding: 10px 14px; border-bottom: 1.5px solid var(--ink); background: var(--paper-deep); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.editor-title-input { flex: 1; background: none; border: none; font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 600; color: var(--ink); outline: none; min-width: 0; }
+.editor-title-input::placeholder { color: var(--gray-soft); font-weight: 400; }
+.editor-tabs { display: flex; gap: 3px; flex-shrink: 0; }
+.editor-tab { background: none; border: 1px solid var(--gray-soft); padding: 4px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; cursor: pointer; color: var(--gray); letter-spacing: 0.05em; }
+.editor-tab.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.editor-body { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+.write-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.write-pane.hidden { display: none; }
+textarea.body-input { flex: 1; width: 100%; padding: 16px; background: var(--paper-lite); border: none; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; line-height: 1.95; color: var(--ink); resize: none; outline: none; }
+.write-toolbar { padding: 8px 12px; border-top: 1px solid var(--gray-soft); display: flex; gap: 6px; align-items: center; background: var(--paper-deep); flex-shrink: 0; flex-wrap: wrap; }
+.tb-btn { background: none; border: 1px solid var(--gray-soft); padding: 5px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; cursor: pointer; color: var(--gray); letter-spacing: 0.05em; }
+.tb-btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.status-select { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--paper); border: 1px solid var(--gray-soft); padding: 4px 6px; color: var(--ink); cursor: pointer; margin-left: auto; -webkit-appearance: none; }
+.chat-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--paper); min-width: 0; }
+.chat-pane.hidden { display: none; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { padding: 10px 13px; line-height: 1.65; font-size: 13px; max-width: 92%; }
+.chat-msg.user { background: var(--ink); color: var(--paper); align-self: flex-end; }
+.chat-msg.assistant { background: var(--paper-deep); border: 1px solid var(--ink); align-self: flex-start; }
+.msg-insert-btn { display: block; margin-top: 8px; background: none; border: 1px solid var(--green); color: var(--green); padding: 4px 10px; font-family: 'JetBrains Mono', monospace; font-size: 9px; cursor: pointer; letter-spacing: 0.05em; text-align: left; }
+.msg-insert-btn:hover { background: var(--green); color: var(--paper); }
+.chat-thinking { background: var(--paper-deep); border: 1px solid var(--gray-soft); align-self: flex-start; padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray); letter-spacing: 0.05em; }
+.chat-input-row { padding: 10px 12px; border-top: 1.5px solid var(--ink); display: flex; gap: 8px; background: var(--paper-deep); flex-shrink: 0; }
+.chat-input { flex: 1; background: var(--paper); border: 1px solid var(--gray-soft); padding: 8px 10px; font-family: 'Noto Sans JP', sans-serif; font-size: 13px; color: var(--ink); resize: none; outline: none; line-height: 1.5; }
+.chat-input:focus { border-color: var(--ink); }
+.chat-send-btn { background: var(--ink); color: var(--paper); border: none; padding: 0 14px; font-family: 'Shippori Mincho', serif; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+.chat-send-btn:disabled { background: var(--gray-soft); cursor: not-allowed; }
+@media (min-width: 720px) {
+  .editor-tabs { display: none; }
+  .write-pane  { display: flex !important; flex: 3; border-right: 1.5px solid var(--ink); }
+  .chat-pane   { display: flex !important; flex: 2; max-width: 320px; }
+}
+.photo-upload-zone { border: 2px dashed var(--gray-soft); padding: 32px 16px; text-align: center; cursor: pointer; transition: border-color 0.15s; margin-bottom: 16px; }
+.photo-upload-zone:hover, .photo-upload-zone.drag-over { border-color: var(--ink); background: var(--paper-deep); }
+.upload-icon { font-size: 36px; margin-bottom: 8px; }
+.upload-hint { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--gray); letter-spacing: 0.08em; }
+.photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.photo-cell { aspect-ratio: 1; overflow: hidden; border: 1px solid var(--gray-soft); position: relative; }
+.photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.photo-overlay { position: absolute; inset: 0; background: rgba(26,29,31,0); display: flex; align-items: flex-start; justify-content: flex-end; padding: 4px; transition: background 0.15s; }
+.photo-cell:hover .photo-overlay { background: rgba(26,29,31,0.4); }
+.photo-del-btn { background: rgba(26,29,31,0.85); color: var(--paper); border: none; width: 24px; height: 24px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.15s; }
+.photo-cell:hover .photo-del-btn { opacity: 1; }
+.photo-name { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(26,29,31,0.7); color: var(--paper); font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 3px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transition: opacity 0.15s; }
+.photo-cell:hover .photo-name { opacity: 1; }
+.settings-section { background: var(--paper-deep); border: 1px solid var(--ink); padding: 16px; margin-bottom: 14px; }
+.settings-section h3 { font-family: 'Shippori Mincho', serif; font-size: 15px; margin-bottom: 8px; }
+.setting-desc { font-size: 11px; color: var(--gray); margin-bottom: 12px; line-height: 1.65; }
+.field { display: flex; flex-direction: column; margin-bottom: 12px; }
+.field label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; color: var(--gray); text-transform: uppercase; margin-bottom: 5px; }
+.field input, .field select { background: var(--paper); border: 1px solid var(--gray-soft); padding: 10px 12px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; color: var(--ink); outline: none; border-radius: 0; -webkit-appearance: none; }
+.field input:focus { border-color: var(--ink); }
+.field input[type=password] { font-family: 'JetBrains Mono', monospace; letter-spacing: 0.08em; }
+.btn-primary { background: var(--ink); color: var(--paper); border: none; padding: 12px 20px; font-family: 'Shippori Mincho', serif; font-size: 14px; cursor: pointer; width: 100%; transition: background 0.15s; letter-spacing: 0.05em; }
+.btn-primary:hover { background: var(--accent); }
+.btn-ghost { background: none; border: 1px solid var(--ink); padding: 10px 20px; font-family: 'Shippori Mincho', serif; font-size: 13px; cursor: pointer; width: 100%; color: var(--ink); transition: all 0.15s; display: block; text-align: center; margin-top: 8px; }
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(26,29,31,0.65); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+.modal-bg.active { display: flex; }
+.modal { background: var(--paper); border: 1.5px solid var(--ink); padding: 20px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+.modal h3 { font-family: 'Shippori Mincho', serif; font-size: 17px; margin-bottom: 14px; }
+.toast { position: fixed; top: 56px; left: 50%; transform: translateX(-50%) translateY(-8px); background: var(--green); color: var(--paper); padding: 8px 22px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; z-index: 200; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--gray-soft); border-top-color: var(--ink); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.voice-center { display: flex; flex-direction: column; align-items: center; padding: 28px 16px 20px; }
+.mic-btn { width: 88px; height: 88px; border-radius: 50%; background: var(--ink); color: var(--paper); border: none; font-size: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s, transform 0.1s; box-shadow: 0 4px 0 var(--gray-soft); flex-shrink: 0; }
+.mic-btn:active { transform: translateY(3px); box-shadow: none; }
+.mic-btn.recording { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(139,44,29,0.5); } 70% { box-shadow: 0 0 0 16px rgba(139,44,29,0); } 100% { box-shadow: 0 0 0 0 rgba(139,44,29,0); } }
+.mic-status { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; color: var(--gray); margin-top: 14px; text-align: center; text-transform: uppercase; }
+.mic-status.active { color: var(--accent); }
+.voice-transcript { width: 100%; min-height: 140px; background: var(--paper-lite); border: 1px solid var(--gray-soft); padding: 14px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; line-height: 1.85; color: var(--ink); resize: vertical; outline: none; }
+.voice-transcript:focus { border-color: var(--ink); }
+.voice-result { width: 100%; min-height: 180px; background: var(--paper-lite); border: 1px solid var(--ink); padding: 14px; font-family: 'Noto Sans JP', sans-serif; font-size: 14px; line-height: 1.85; color: var(--ink); resize: vertical; outline: none; }
+.voice-section-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; color: var(--gray); text-transform: uppercase; margin-bottom: 6px; display: block; }
+.sync-row { display: flex; align-items: center; gap: 8px; }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gray-soft); flex-shrink: 0; transition: background 0.3s; }
+.sync-dot.ok      { background: var(--green); }
+.sync-dot.syncing { background: var(--gold); animation: blink 0.8s ease-in-out infinite; }
+.sync-dot.error   { background: var(--accent); }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.sync-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; color: rgba(245,241,232,0.55); }
+.hidden { display: none !important; }
+@media (max-width: 380px) { .photo-grid { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">note-maker</div>
+    <div class="brand-sub" id="headerSub">連載管理ツール</div>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px;">
+    <div class="header-badge hidden" id="headerBadge">DAY —</div>
+    <div class="sync-row" id="syncRow" title="同期状態">
+      <div class="sync-dot" id="syncDot"></div>
+      <span class="sync-label" id="syncLabel">未設定</span>
+    </div>
+  </div>
+</header>
+
+<div id="panel-articles" class="panel active">
+  <div class="container">
+    <h2 class="section-title">記事一覧 <span class="section-title-en">Articles</span></h2>
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="tb-btn" id="btnManualSync" style="flex:1;">↻ 今すぐ同期</button>
+      <button class="tb-btn" id="btnBookExport" style="flex:1;">📖 本として書き出す</button>
+    </div>
+    <div id="articleList"></div>
+  </div>
+  <button class="fab" id="btnNewArticle" title="新規記事">+</button>
+</div>
+
+<div id="panel-editor" class="panel">
+  <div class="editor-header">
+    <button class="tb-btn" id="btnBackToList" style="flex-shrink:0;">← 一覧</button>
+    <input type="text" class="editor-title-input" id="editorTitle" placeholder="タイトルを入力…">
+    <div class="editor-tabs">
+      <button class="editor-tab active" data-tab="write">本文</button>
+      <button class="editor-tab" data-tab="chat">AI</button>
+    </div>
+  </div>
+  <div class="editor-body">
+    <div class="write-pane" id="writePane">
+      <textarea class="body-input" id="editorBody" placeholder="ここに本文を書く…"></textarea>
+      <div class="write-toolbar">
+        <button class="tb-btn" id="btnInsertPhoto">📷 写真</button>
+        <button class="tb-btn" id="btnDeleteArticle" style="color:var(--red);border-color:var(--red);">削除</button>
+        <select class="status-select" id="statusSelect">
+          <option value="draft">下書き</option>
+          <option value="ready">投稿準備完了</option>
+          <option value="published">公開済み</option>
+        </select>
+        <button class="tb-btn" id="btnCopyNote" style="background:var(--ink);color:var(--paper);border-color:var(--ink);">コピー</button>
+      </div>
+    </div>
+    <div class="chat-pane hidden" id="chatPane">
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-msg assistant">
+          記事について一緒に整理しましょう。<br>
+          アイデアの壁打ち、構成の相談、文章の磨き込み、何でも。<br><br>
+          <small style="color:var(--gray);font-family:'JetBrains Mono',monospace;font-size:10px;">Ctrl+Enter で送信</small>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" placeholder="AIに相談する…" rows="2"></textarea>
+        <button class="chat-send-btn" id="btnChatSend">送信</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="panel-photos" class="panel">
+  <div class="container">
+    <h2 class="section-title">写真 <span class="section-title-en">Photos</span></h2>
+    <div class="photo-upload-zone" id="uploadZone">
+      <div class="upload-icon">📷</div>
+      <div class="upload-hint">タップまたはドラッグで写真を追加</div>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none;">
+    </div>
+    <div class="photo-grid" id="photoGrid"></div>
+    <p id="photoEmpty" class="hidden" style="color:var(--gray);font-family:'JetBrains Mono',monospace;font-size:11px;">写真がまだありません</p>
+  </div>
+</div>
+
+<div id="panel-settings" class="panel">
+  <div class="container">
+    <h2 class="section-title">設定 <span class="section-title-en">Settings</span></h2>
+    <div class="settings-section">
+      <h3>Claude API キー</h3>
+      <p class="setting-desc">AIチャット・音声まとめ機能に使用します。ブラウザのローカルストレージにのみ保存されます。</p>
+      <div class="field">
+        <label>API Key</label>
+        <input type="password" id="settingApiKey" placeholder="sk-ant-…" autocomplete="off">
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>連載の設定</h3>
+      <div class="field">
+        <label>連載名</label>
+        <input type="text" id="settingSeriesName" placeholder="例：家計簿で生きる日々">
+      </div>
+      <div class="field">
+        <label>note.com URL</label>
+        <input type="url" id="settingNoteUrl" placeholder="https://note.com/…">
+      </div>
+      <div class="field">
+        <label>連載開始日</label>
+        <input type="date" id="settingSeriesStart">
+      </div>
+    </div>
+    <div class="settings-section">
+      <h3>GitHub 同期</h3>
+      <p class="setting-desc">
+        PC・iPhoneで記事を共有するために使います。<br><br>
+        <strong style="color:var(--ink);">Token の作り方：</strong><br>
+        GitHub → Settings → Developer settings<br>
+        → Personal access tokens → Fine-grained tokens → Generate new token<br>
+        → Repository access: note-maker のみ<br>
+        → Permissions: Contents → Read and write<br>
+        → Generate して貼り付け
+      </p>
+      <div class="field">
+        <label>GitHub Token</label>
+        <input type="password" id="settingGhToken" placeholder="github_pat_…" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>GitHubユーザー名</label>
+        <input type="text" id="settingGhUser" placeholder="例：daisuke2000yg">
+      </div>
+      <div class="field">
+        <label>リポジトリ名</label>
+        <input type="text" id="settingGhRepo" placeholder="例：note-maker">
+      </div>
+      <button class="btn-ghost" id="btnTestSync" style="margin-top:4px;">接続テスト</button>
+    </div>
+    <button class="btn-primary" id="btnSaveSettings">保存する</button>
+    <div class="settings-section" style="margin-top:20px;">
+      <h3>データ管理</h3>
+      <p class="setting-desc">記事・写真・チャット履歴をまとめてバックアップ/復元できます。</p>
+      <button class="btn-ghost" id="btnExport">JSONバックアップ</button>
+      <label class="btn-ghost" style="cursor:pointer;">
+        JSONから復元
+        <input type="file" id="importJson" accept=".json" style="display:none;">
+      </label>
+    </div>
+    <div style="margin-top:24px;text-align:center;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--gray);letter-spacing:0.12em;">
+      DATA STORED LOCALLY · GitHub同期を設定すると全端末で共有
+    </div>
+  </div>
+</div>
+
+<div id="panel-voice" class="panel">
+  <div class="container">
+    <h2 class="section-title">音声入力 <span class="section-title-en">Voice to Article</span></h2>
+    <div class="voice-center">
+      <button class="mic-btn" id="micBtn" title="タップして録音開始">🎤</button>
+      <div class="mic-status" id="micStatus">タップして録音開始</div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <span class="voice-section-label">書き起こし（話した内容）</span>
+      <textarea class="voice-transcript" id="voiceTranscript" placeholder="録音すると、ここに文字が出てきます…"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="tb-btn" id="btnClearTranscript">クリア</button>
+        <button class="tb-btn" id="btnSummarize" style="background:var(--ink);color:var(--paper);border-color:var(--ink);flex:1;">✦ AIで記事にまとめる</button>
+      </div>
+    </div>
+    <div id="voiceResultSection" class="hidden">
+      <span class="voice-section-label">AIがまとめた記事</span>
+      <textarea class="voice-result" id="voiceResult"></textarea>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="tb-btn" id="btnCopyResult" style="flex:1;">クリップボードにコピー</button>
+        <button class="tb-btn" id="btnSendToEditor" style="flex:1;background:var(--green);color:var(--paper);border-color:var(--green);">エディタに送る</button>
+      </div>
+    </div>
+    <div id="voiceNoApi" class="hidden" style="margin-top:14px;padding:12px;border:1px dashed var(--gray-soft);font-size:12px;color:var(--gray);font-family:'JetBrains Mono',monospace;line-height:1.7;">
+      AIまとめにはClaude APIキーが必要です。設定タブから入力してください。
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" data-panel="articles"><span class="icon">≡</span><span class="lbl">記事</span></button>
+  <button class="nav-btn" data-panel="editor"><span class="icon">✎</span><span class="lbl">エディタ</span></button>
+  <button class="nav-btn" data-panel="photos"><span class="icon">⬜</span><span class="lbl">写真</span></button>
+  <button class="nav-btn" data-panel="voice"><span class="icon">🎤</span><span class="lbl">音声</span></button>
+  <button class="nav-btn" data-panel="settings"><span class="icon">⚙</span><span class="lbl">設定</span></button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="photoPickerModal">
+  <div class="modal">
+    <h3>写真を選んで挿入</h3>
+    <div class="photo-grid" id="photoPickerGrid" style="margin-bottom:12px;"></div>
+    <p id="photoPickerEmpty" class="hidden" style="color:var(--gray);font-size:12px;margin-bottom:12px;">写真がありません。先に「写真」タブから追加してください。</p>
+    <button class="btn-ghost" id="btnClosePhotoPicker" style="margin-top:0;">キャンセル</button>
+  </div>
+</div>
+
+<script>
+const SK_ARTICLES = 'notemkr_articles';
+const SK_SETTINGS = 'notemkr_settings';
+const SK_CHATS    = 'notemkr_chats';
+const DB_NAME     = 'notemkr_db';
+const DB_VER      = 1;
+const GH_FILE     = 'sync.json';
+
+let db = null;
+let currentArticleId = null;
+let currentEditorTab = 'write';
+let autoSaveTimer    = null;
+let recognition      = null;
+let isRecording      = false;
+let finalText        = '';
+let interimText      = '';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('photos')) d.createObjectStore('photos', { keyPath: 'id' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+function dbPut(store, obj) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).put(obj);
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+function dbGetAll(store) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+function dbDelete(store, id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    tx.objectStore(store).delete(id);
+    tx.oncomplete = resolve;
+    tx.onerror = e => reject(e.target.error);
+  });
+}
+
+function loadArticles() { try { return JSON.parse(localStorage.getItem(SK_ARTICLES)) || []; } catch { return []; } }
+function saveArticles(a) { localStorage.setItem(SK_ARTICLES, JSON.stringify(a)); }
+function loadSettings() { try { return JSON.parse(localStorage.getItem(SK_SETTINGS)) || {}; } catch { return {}; } }
+function saveSettings(s) { localStorage.setItem(SK_SETTINGS, JSON.stringify(s)); }
+function loadChats() { try { return JSON.parse(localStorage.getItem(SK_CHATS)) || {}; } catch { return {}; } }
+function saveChats(c) { localStorage.setItem(SK_CHATS, JSON.stringify(c)); }
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function fmtDateTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const days = ['日','月','火','水','木','金','土'];
+  return `${d.getMonth()+1}/${d.getDate()}（${days[d.getDay()]}）${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+function calcDay(startIso) {
+  if (!startIso) return null;
+  const s = new Date(startIso); s.setHours(0,0,0,0);
+  const t = new Date();         t.setHours(0,0,0,0);
+  return Math.max(1, Math.floor((t - s) / 86400000) + 1);
+}
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+  );
+}
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.background = color || 'var(--green)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function renderHeader() {
+  const s = loadSettings();
+  document.getElementById('headerSub').textContent = s.seriesName || '連載管理ツール';
+  const day = calcDay(s.seriesStart);
+  const badge = document.getElementById('headerBadge');
+  if (day) { badge.textContent = `DAY ${day}`; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+}
+
+function renderArticleList() {
+  const articles = loadArticles().slice().sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  const el = document.getElementById('articleList');
+  if (articles.length === 0) {
+    el.innerHTML = `<div class="empty-state"><div class="big">まだ記事がありません</div><div class="sub">＋ ボタンで新しい記事を作成</div></div>`;
+    return;
+  }
+  el.innerHTML = articles.map(a => {
+    const stLabel = { draft:'DRAFT', ready:'READY', published:'PUBLIC' }[a.status] || 'DRAFT';
+    const numStr  = a.postNum ? `#${a.postNum} · ` : '';
+    const preview = (a.body || '').replace(/\n+/g, ' ').slice(0, 90);
+    return `<div class="article-card" data-id="${a.id}">
+      <div class="ac-top">
+        <span class="ac-num">${esc(numStr)}${fmtDateTime(a.updatedAt)}</span>
+        <span class="ac-status ${a.status}">${stLabel}</span>
+      </div>
+      <div class="ac-title">${esc(a.title) || '（タイトル未入力）'}</div>
+      ${preview ? `<div class="ac-preview">${esc(preview)}</div>` : ''}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.article-card').forEach(card =>
+    card.addEventListener('click', () => openArticle(card.dataset.id))
+  );
+}
+
+function createArticle() {
+  const s = loadSettings();
+  const art = { id: uid(), title: '', body: '', status: 'draft', postNum: calcDay(s.seriesStart), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), photoIds: [] };
+  const arr = loadArticles(); arr.push(art); saveArticles(arr);
+  return art;
+}
+function openArticle(id) {
+  currentArticleId = id;
+  const art = loadArticles().find(a => a.id === id);
+  if (!art) return;
+  document.getElementById('editorTitle').value = art.title || '';
+  document.getElementById('editorBody').value  = art.body  || '';
+  document.getElementById('statusSelect').value = art.status || 'draft';
+  switchEditorTab('write');
+  renderChatMessages();
+  showPanel('editor');
+}
+function saveCurrentArticle() {
+  if (!currentArticleId) return;
+  const arr = loadArticles();
+  const idx = arr.findIndex(a => a.id === currentArticleId);
+  if (idx === -1) return;
+  arr[idx].title = document.getElementById('editorTitle').value;
+  arr[idx].body  = document.getElementById('editorBody').value;
+  arr[idx].status = document.getElementById('statusSelect').value;
+  arr[idx].updatedAt = new Date().toISOString();
+  saveArticles(arr);
+}
+function scheduleAutoSave() {
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(() => { saveCurrentArticle(); githubPush(); }, 1500);
+}
+function insertText(text) {
+  const ta = document.getElementById('editorBody');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0, s) + text + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + text.length;
+  ta.focus(); scheduleAutoSave();
+}
+function switchEditorTab(tab) {
+  currentEditorTab = tab;
+  document.querySelectorAll('.editor-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.getElementById('writePane').classList.toggle('hidden', tab !== 'write');
+  document.getElementById('chatPane').classList.toggle('hidden', tab !== 'chat');
+  if (tab === 'chat') { const c = document.getElementById('chatMessages'); c.scrollTop = c.scrollHeight; }
+}
+
+function renderChatMessages() {
+  const msgs = (loadChats()[currentArticleId] || []);
+  const container = document.getElementById('chatMessages');
+  if (msgs.length === 0) {
+    container.innerHTML = `<div class="chat-msg assistant">記事について一緒に整理しましょう。<br>アイデアの壁打ち、構成の相談、文章の磨き込み、何でも。<br><br><small style="color:var(--gray);font-family:'JetBrains Mono',monospace;font-size:10px;">Ctrl+Enter で送信</small></div>`;
+    return;
+  }
+  container.innerHTML = msgs.map(m => {
+    if (m.role === 'user') return `<div class="chat-msg user">${esc(m.content).replace(/\n/g,'<br>')}</div>`;
+    return `<div class="chat-msg assistant">${esc(m.content).replace(/\n/g,'<br>')}<button class="msg-insert-btn" data-content="${encodeURIComponent(m.content)}">＋ 本文に挿入</button></div>`;
+  }).join('');
+  container.querySelectorAll('.msg-insert-btn').forEach(btn =>
+    btn.addEventListener('click', () => { insertText('\n\n' + decodeURIComponent(btn.dataset.content) + '\n'); toast('挿入しました'); })
+  );
+  container.scrollTop = container.scrollHeight;
+}
+
+async function sendChat() {
+  const inputEl = document.getElementById('chatInput');
+  const userMsg = inputEl.value.trim();
+  if (!userMsg || !currentArticleId) return;
+  const s = loadSettings();
+  if (!s.apiKey) { toast('設定画面でAPIキーを入力してください', 'var(--accent)'); showPanel('settings'); return; }
+  inputEl.value = '';
+  document.getElementById('btnChatSend').disabled = true;
+  const chats = loadChats();
+  if (!chats[currentArticleId]) chats[currentArticleId] = [];
+  chats[currentArticleId].push({ role: 'user', content: userMsg });
+  saveChats(chats); renderChatMessages();
+  const container = document.getElementById('chatMessages');
+  const thinking = document.createElement('div');
+  thinking.className = 'chat-thinking';
+  thinking.innerHTML = '<span class="spinner"></span>考えています…';
+  container.appendChild(thinking); container.scrollTop = container.scrollHeight;
+  const title = document.getElementById('editorTitle').value;
+  const body  = document.getElementById('editorBody').value;
+  const system = `あなたはnote.comで連載を書く日本人ライターのアシスタントです。\n${title ? `現在の記事タイトル：「${title}」` : ''}\n${body ? `現在の本文（冒頭500文字）：\n${body.slice(0, 500)}` : '記事はまだ空です。'}\n記事の内容を整理・磨くために、具体的で簡潔なアドバイスや文章案を日本語で提案してください。提案する文章は、そのまま本文に挿入できる形にしてください。`;
+  const messages = (loadChats()[currentArticleId] || []).slice(-12).map(m => ({ role: m.role, content: m.content }));
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
+      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 1024, system, messages }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    const c = loadChats(); c[currentArticleId].push({ role: 'assistant', content: data.content[0].text }); saveChats(c);
+  } catch (err) {
+    const c = loadChats(); if (!c[currentArticleId]) c[currentArticleId] = [];
+    c[currentArticleId].push({ role: 'assistant', content: `⚠️ エラー: ${err.message}` }); saveChats(c);
+  }
+  thinking.remove(); document.getElementById('btnChatSend').disabled = false; renderChatMessages();
+}
+
+function handleFiles(files) {
+  const images = Array.from(files).filter(f => f.type.startsWith('image/'));
+  if (!images.length) return;
+  Promise.all(images.map(file => new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = async e => { await dbPut('photos', { id: uid(), name: file.name, data: e.target.result, type: file.type, size: file.size, uploadedAt: new Date().toISOString() }); resolve(); };
+    reader.readAsDataURL(file);
+  }))).then(() => { renderPhotos(); toast(`${images.length}枚追加しました`); });
+}
+
+function renderPhotos() {
+  dbGetAll('photos').then(photos => {
+    const grid = document.getElementById('photoGrid'), empty = document.getElementById('photoEmpty');
+    if (!photos.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    grid.innerHTML = photos.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(p =>
+      `<div class="photo-cell" data-id="${p.id}"><img src="${p.data}" alt="${esc(p.name)}" loading="lazy"><div class="photo-overlay"><button class="photo-del-btn" data-id="${p.id}">×</button></div><div class="photo-name">${esc(p.name)}</div></div>`
+    ).join('');
+    grid.querySelectorAll('.photo-del-btn').forEach(btn => btn.addEventListener('click', e => {
+      e.stopPropagation();
+      if (!confirm('この写真を削除しますか?')) return;
+      dbDelete('photos', btn.dataset.id).then(() => { renderPhotos(); toast('削除しました'); });
+    }));
+  });
+}
+
+function renderPhotoPicker() {
+  dbGetAll('photos').then(photos => {
+    const grid = document.getElementById('photoPickerGrid'), empty = document.getElementById('photoPickerEmpty');
+    if (!photos.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    empty.classList.add('hidden');
+    grid.innerHTML = photos.sort((a,b) => b.uploadedAt.localeCompare(a.uploadedAt)).map(p =>
+      `<div class="photo-cell" data-id="${p.id}" data-name="${esc(p.name)}" style="cursor:pointer;"><img src="${p.data}" alt="${esc(p.name)}" loading="lazy"></div>`
+    ).join('');
+    grid.querySelectorAll('.photo-cell').forEach(cell => cell.addEventListener('click', () => {
+      insertText(`\n[写真: ${cell.dataset.name}]\n`);
+      const arr = loadArticles(), art = arr.find(a => a.id === currentArticleId);
+      if (art && !art.photoIds.includes(cell.dataset.id)) { art.photoIds.push(cell.dataset.id); saveArticles(arr); }
+      closePicker(); toast('写真を挿入しました');
+    }));
+  });
+}
+function closePicker() { document.getElementById('photoPickerModal').classList.remove('active'); }
+
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  const btn = document.querySelector(`.nav-btn[data-panel="${name}"]`);
+  if (btn) btn.classList.add('active');
+  window.scrollTo(0, 0);
+  if (name === 'articles') renderArticleList();
+  if (name === 'photos')   renderPhotos();
+  if (name === 'settings') renderSettingsPanel();
+}
+function renderSettingsPanel() {
+  const s = loadSettings();
+  document.getElementById('settingApiKey').value      = s.apiKey      || '';
+  document.getElementById('settingSeriesName').value  = s.seriesName  || '';
+  document.getElementById('settingNoteUrl').value     = s.noteUrl     || '';
+  document.getElementById('settingSeriesStart').value = s.seriesStart || '';
+  document.getElementById('settingGhToken').value     = s.ghToken     || '';
+  document.getElementById('settingGhUser').value      = s.ghUser      || '';
+  document.getElementById('settingGhRepo').value      = s.ghRepo      || '';
+}
+
+// GitHub 同期
+function ghHeaders(token) {
+  return { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' };
+}
+function setSyncStatus(state, label) {
+  document.getElementById('syncDot').className = 'sync-dot ' + state;
+  document.getElementById('syncLabel').textContent = label;
+}
+async function githubPull() {
+  const s = loadSettings();
+  if (!s.ghToken || !s.ghUser || !s.ghRepo) return false;
+  setSyncStatus('syncing', '取得中…');
+  try {
+    const res = await fetch(`https://api.github.com/repos/${s.ghUser}/${s.ghRepo}/contents/${GH_FILE}`, { headers: ghHeaders(s.ghToken) });
+    if (res.status === 404) { setSyncStatus('ok', 'リモート: 空'); return true; }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const remote = JSON.parse(atob(data.content.replace(/\n/g, '')));
+    const merged = {};
+    [...loadArticles(), ...(remote.articles || [])].forEach(a => {
+      if (!merged[a.id] || a.updatedAt > merged[a.id].updatedAt) merged[a.id] = a;
+    });
+    saveArticles(Object.values(merged));
+    saveChats(Object.assign({}, remote.chats || {}, loadChats()));
+    const now = new Date();
+    setSyncStatus('ok', `同期済 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+    return true;
+  } catch (e) { setSyncStatus('error', 'エラー'); return false; }
+}
+async function githubPush() {
+  const s = loadSettings();
+  if (!s.ghToken || !s.ghUser || !s.ghRepo) return;
+  setSyncStatus('syncing', '保存中…');
+  try {
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify({ articles: loadArticles(), chats: loadChats(), syncedAt: new Date().toISOString() }, null, 2))));
+    let sha = null;
+    const getRes = await fetch(`https://api.github.com/repos/${s.ghUser}/${s.ghRepo}/contents/${GH_FILE}`, { headers: ghHeaders(s.ghToken) });
+    if (getRes.ok) sha = (await getRes.json()).sha;
+    const body = { message: `sync ${new Date().toISOString()}`, content };
+    if (sha) body.sha = sha;
+    const putRes = await fetch(`https://api.github.com/repos/${s.ghUser}/${s.ghRepo}/contents/${GH_FILE}`, { method: 'PUT', headers: ghHeaders(s.ghToken), body: JSON.stringify(body) });
+    if (!putRes.ok) throw new Error(`HTTP ${putRes.status}`);
+    const now = new Date();
+    setSyncStatus('ok', `同期済 ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`);
+  } catch (e) { setSyncStatus('error', 'エラー'); }
+}
+async function syncAll() {
+  const s = loadSettings();
+  if (!s.ghToken || !s.ghUser || !s.ghRepo) { setSyncStatus('', '未設定'); return; }
+  const ok = await githubPull();
+  if (ok) await githubPush();
+  renderArticleList(); renderHeader();
+}
+
+function exportAsBook() {
+  const articles = loadArticles().filter(a => a.status === 'published' || a.status === 'ready').sort((a,b) => a.createdAt.localeCompare(b.createdAt));
+  if (articles.length === 0) { toast('公開済み・投稿準備完了の記事がありません', 'var(--accent)'); return; }
+  const s = loadSettings(), seriesName = s.seriesName || 'note-maker';
+  const today = new Date();
+  let md = `# ${seriesName}\n\n書き出し日: ${today.getFullYear()}年${today.getMonth()+1}月${today.getDate()}日\n記事数: ${articles.length}本\n\n---\n\n`;
+  articles.forEach((a, i) => {
+    const d = new Date(a.createdAt), days = ['日','月','火','水','木','金','土'];
+    md += `## 第${i+1}話　${a.title || '（タイトル未設定）'}\n\n*${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${days[d.getDay()]}）*\n\n${(a.body || '').trim()}\n\n---\n\n`;
+  });
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `${seriesName}_book_${todayIso()}.md`; a.click(); URL.revokeObjectURL(url);
+  toast(`${articles.length}本の記事を書き出しました`);
+}
+
+// イベント
+document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => {
+  const target = btn.dataset.panel;
+  if (target === 'editor') { if (!currentArticleId) { const art = createArticle(); openArticle(art.id); } else showPanel('editor'); }
+  else { saveCurrentArticle(); showPanel(target); }
+}));
+document.querySelectorAll('.editor-tab').forEach(btn => btn.addEventListener('click', () => switchEditorTab(btn.dataset.tab)));
+document.getElementById('btnNewArticle').addEventListener('click', () => { const art = createArticle(); openArticle(art.id); });
+document.getElementById('btnBackToList').addEventListener('click', () => { saveCurrentArticle(); showPanel('articles'); });
+['editorTitle', 'editorBody'].forEach(id => document.getElementById(id).addEventListener('input', scheduleAutoSave));
+document.getElementById('statusSelect').addEventListener('change', saveCurrentArticle);
+document.getElementById('btnCopyNote').addEventListener('click', async () => {
+  saveCurrentArticle();
+  const text = (document.getElementById('editorTitle').value ? document.getElementById('editorTitle').value + '\n\n' : '') + document.getElementById('editorBody').value;
+  try { await navigator.clipboard.writeText(text); } catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  toast('クリップボードにコピーしました');
+});
+document.getElementById('btnDeleteArticle').addEventListener('click', () => {
+  if (!currentArticleId || !confirm('この記事を削除しますか? 元に戻せません。')) return;
+  saveArticles(loadArticles().filter(a => a.id !== currentArticleId));
+  const c = loadChats(); delete c[currentArticleId]; saveChats(c);
+  currentArticleId = null; showPanel('articles'); toast('削除しました');
+});
+document.getElementById('btnInsertPhoto').addEventListener('click', () => { renderPhotoPicker(); document.getElementById('photoPickerModal').classList.add('active'); });
+document.getElementById('btnClosePhotoPicker').addEventListener('click', closePicker);
+document.getElementById('photoPickerModal').addEventListener('click', e => { if (e.target === e.currentTarget) closePicker(); });
+document.getElementById('btnChatSend').addEventListener('click', sendChat);
+document.getElementById('chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); sendChat(); } });
+const uploadZone = document.getElementById('uploadZone'), photoInput = document.getElementById('photoInput');
+uploadZone.addEventListener('click', () => photoInput.click());
+photoInput.addEventListener('change', e => { handleFiles(e.target.files); e.target.value = ''; });
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+document.getElementById('btnSaveSettings').addEventListener('click', () => {
+  const s = { apiKey: document.getElementById('settingApiKey').value.trim(), seriesName: document.getElementById('settingSeriesName').value.trim(), noteUrl: document.getElementById('settingNoteUrl').value.trim(), seriesStart: document.getElementById('settingSeriesStart').value, ghToken: document.getElementById('settingGhToken').value.trim(), ghUser: document.getElementById('settingGhUser').value.trim(), ghRepo: document.getElementById('settingGhRepo').value.trim() };
+  saveSettings(s); renderHeader();
+  if (s.ghToken && s.ghUser && s.ghRepo) syncAll();
+  toast('設定を保存しました');
+});
+document.getElementById('btnExport').addEventListener('click', async () => {
+  const data = { articles: loadArticles(), chats: loadChats(), photos: await dbGetAll('photos'), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = `notemkr_${todayIso()}.json`; a.click(); URL.revokeObjectURL(url);
+});
+document.getElementById('importJson').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.articles)) throw new Error('形式が違います');
+      if (!confirm('現在のデータを上書きします。よろしいですか?')) return;
+      saveArticles(data.articles || []); saveChats(data.chats || {});
+      if (Array.isArray(data.photos)) for (const p of data.photos) await dbPut('photos', p);
+      currentArticleId = null; renderArticleList(); renderHeader(); toast('復元しました');
+    } catch (err) { toast('失敗: ' + err.message, 'var(--accent)'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+document.getElementById('btnManualSync').addEventListener('click', async () => {
+  const s = loadSettings();
+  if (!s.ghToken) { toast('設定タブでGitHub Tokenを入力してください', 'var(--accent)'); showPanel('settings'); return; }
+  await syncAll(); toast('同期しました');
+});
+document.getElementById('btnBookExport').addEventListener('click', exportAsBook);
+document.getElementById('btnTestSync').addEventListener('click', async () => {
+  const token = document.getElementById('settingGhToken').value.trim(), user = document.getElementById('settingGhUser').value.trim(), repo = document.getElementById('settingGhRepo').value.trim();
+  if (!token || !user || !repo) { toast('Token・ユーザー名・リポジトリ名を入力してください', 'var(--accent)'); return; }
+  const btn = document.getElementById('btnTestSync'); btn.textContent = '確認中…'; btn.disabled = true;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${user}/${repo}`, { headers: ghHeaders(token) });
+    toast(res.ok ? '接続成功！リポジトリを確認できました' : `接続失敗 HTTP ${res.status}`, res.ok ? undefined : 'var(--accent)');
+  } catch (e) { toast('接続エラー: ' + e.message, 'var(--accent)'); }
+  btn.textContent = '接続テスト'; btn.disabled = false;
+});
+
+// 音声入力
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+function initRecognition() {
+  if (!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.lang = 'ja-JP'; r.continuous = true; r.interimResults = true;
+  r.onresult = e => {
+    interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      else interimText += e.results[i][0].transcript;
+    }
+    document.getElementById('voiceTranscript').value = finalText + (interimText ? '…' + interimText : '');
+  };
+  r.onend = () => { if (isRecording) r.start(); };
+  r.onerror = e => { if (e.error === 'not-allowed') toast('マイクのアクセスを許可してください', 'var(--accent)'); stopRecording(); };
+  return r;
+}
+function startRecording() {
+  if (!SpeechRecognition) { toast('このブラウザは音声入力に対応していません（Chrome推奨）', 'var(--accent)'); return; }
+  finalText = document.getElementById('voiceTranscript').value; interimText = '';
+  recognition = initRecognition(); recognition.start(); isRecording = true;
+  document.getElementById('micBtn').classList.add('recording'); document.getElementById('micBtn').textContent = '⏹';
+  const st = document.getElementById('micStatus'); st.textContent = '録音中… タップで停止'; st.classList.add('active');
+}
+function stopRecording() {
+  isRecording = false;
+  if (recognition) { recognition.onend = null; recognition.stop(); recognition = null; }
+  document.getElementById('micBtn').classList.remove('recording'); document.getElementById('micBtn').textContent = '🎤';
+  const st = document.getElementById('micStatus'); st.textContent = 'タップして録音開始'; st.classList.remove('active');
+  document.getElementById('voiceTranscript').value = finalText;
+}
+document.getElementById('micBtn').addEventListener('click', () => { if (isRecording) stopRecording(); else startRecording(); });
+document.getElementById('btnClearTranscript').addEventListener('click', () => {
+  if (isRecording) stopRecording(); finalText = ''; interimText = '';
+  document.getElementById('voiceTranscript').value = ''; document.getElementById('voiceResultSection').classList.add('hidden');
+});
+document.getElementById('voiceTranscript').addEventListener('input', function () { if (!isRecording) finalText = this.value; });
+document.getElementById('btnSummarize').addEventListener('click', async () => {
+  const transcript = document.getElementById('voiceTranscript').value.trim();
+  if (!transcript) { toast('書き起こしが空です', 'var(--accent)'); return; }
+  const s = loadSettings();
+  if (!s.apiKey) { document.getElementById('voiceNoApi').classList.remove('hidden'); return; }
+  document.getElementById('voiceNoApi').classList.add('hidden');
+  const btn = document.getElementById('btnSummarize'); btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>まとめています…';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': s.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-allow-browser': 'true' },
+      body: JSON.stringify({ model: 'claude-opus-4-7', max_tokens: 2048, system: `あなたはnote.comで連載を書く日本人ライターのアシスタントです。ユーザーが話した内容の書き起こしを、note.com の記事として読みやすく仕上げてください。\nルール：\n- 冒頭に記事タイトルを「タイトル：○○○」の形で1行書く\n- 話し言葉を自然な書き言葉に変換する\n- 段落を整理して読みやすくする\n- 内容は削らず、意味が伝わるように整える\n- 体裁はnote.comのカジュアルな記事調（ですます体）\n- タイトルの後は本文のみ（余計な説明文は不要）`, messages: [{ role: 'user', content: `書き起こし:\n${transcript}` }] }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+    document.getElementById('voiceResult').value = data.content[0].text;
+    document.getElementById('voiceResultSection').classList.remove('hidden');
+    document.getElementById('voiceResultSection').scrollIntoView({ behavior: 'smooth' });
+  } catch (err) { toast('エラー: ' + err.message, 'var(--accent)'); }
+  btn.disabled = false; btn.innerHTML = '✦ AIで記事にまとめる';
+});
+document.getElementById('btnCopyResult').addEventListener('click', async () => {
+  const text = document.getElementById('voiceResult').value;
+  try { await navigator.clipboard.writeText(text); } catch { const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  toast('コピーしました');
+});
+document.getElementById('btnSendToEditor').addEventListener('click', () => {
+  const text = document.getElementById('voiceResult').value.trim(); if (!text) return;
+  const lines = text.split('\n'), titleLine = lines.find(l => l.startsWith('タイトル：') || l.startsWith('タイトル:'));
+  let title = '', body = text;
+  if (titleLine) { title = titleLine.replace(/^タイトル[：:]/, '').trim(); body = lines.filter(l => l !== titleLine).join('\n').trim(); }
+  if (!currentArticleId) { const art = createArticle(); currentArticleId = art.id; }
+  const arr = loadArticles(), art = arr.find(a => a.id === currentArticleId);
+  if (art) { if (title && !art.title) art.title = title; art.body = (art.body ? art.body + '\n\n' : '') + body; art.updatedAt = new Date().toISOString(); saveArticles(arr); }
+  openArticle(currentArticleId); toast('エディタに送りました');
+});
+
+// 初期化
+openDB().then(async d => {
+  db = d; renderHeader();
+  const s = loadSettings();
+  if (s.ghToken && s.ghUser && s.ghRepo) await syncAll();
+  else setSyncStatus('', '未設定');
+  renderArticleList();
+});
+</script>
+</body>
+</html>
