@@ -248,6 +248,14 @@ textarea.body-input { flex: 1; width: 100%; padding: 16px; background: var(--pap
   <div class="container">
     <h2 class="section-title">設定 <span class="section-title-en">Settings</span></h2>
     <div class="settings-section">
+      <h3>Claude プロジェクト</h3>
+      <p class="setting-desc">「claude.aiで記事にする」「claude.aiで相談」ボタンの飛び先URLです。専用プロジェクトを作っておくと、毎回同じ指示・スタイルでやり取りできます。</p>
+      <div class="field">
+        <label>Claude Project URL</label>
+        <input type="url" id="settingClaudeUrl" placeholder="https://claude.ai/project/…">
+      </div>
+    </div>
+    <div class="settings-section">
       <h3>連載の設定</h3>
       <div class="field">
         <label>連載名</label>
@@ -540,16 +548,22 @@ function renderChatMessages() {
   container.scrollTop = container.scrollHeight;
 }
 
-async function sendChat() {
+function sendChat() {
   const inputEl = document.getElementById('chatInput');
   const userMsg = inputEl.value.trim();
   if (!userMsg) return;
+  const s = loadSettings();
+  const claudeUrl = s.claudeUrl || 'https://claude.ai';
   const title = document.getElementById('editorTitle').value;
   const body  = document.getElementById('editorBody').value;
   const prompt = `連載「東京から南小国へ」の記事について相談です。\n${title ? `タイトル：「${title}」\n` : ''}${body ? `本文（冒頭500字）：\n${body.slice(0, 500)}\n\n` : ''}相談：${userMsg}`;
-  try { await navigator.clipboard.writeText(prompt); } catch { const ta = document.createElement('textarea'); ta.value = prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
+  const ta = document.createElement('textarea');
+  ta.value = prompt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
   inputEl.value = '';
-  window.open('https://claude.ai', '_blank');
+  window.open(claudeUrl, '_blank');
   toast('コピーしました。claude.aiに貼り付けてください');
 }
 
@@ -610,6 +624,7 @@ function showPanel(name) {
 }
 function renderSettingsPanel() {
   const s = loadSettings();
+  document.getElementById('settingClaudeUrl').value   = s.claudeUrl   || '';
   document.getElementById('settingSeriesName').value  = s.seriesName  || '';
   document.getElementById('settingNoteUrl').value     = s.noteUrl     || '';
   document.getElementById('settingSeriesStart').value = s.seriesStart || '';
@@ -723,7 +738,7 @@ uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.cl
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
 uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
 document.getElementById('btnSaveSettings').addEventListener('click', () => {
-  const s = { seriesName: document.getElementById('settingSeriesName').value.trim(), noteUrl: document.getElementById('settingNoteUrl').value.trim(), seriesStart: document.getElementById('settingSeriesStart').value, ghToken: document.getElementById('settingGhToken').value.trim(), ghUser: document.getElementById('settingGhUser').value.trim(), ghRepo: document.getElementById('settingGhRepo').value.trim() };
+  const s = { claudeUrl: document.getElementById('settingClaudeUrl').value.trim(), seriesName: document.getElementById('settingSeriesName').value.trim(), noteUrl: document.getElementById('settingNoteUrl').value.trim(), seriesStart: document.getElementById('settingSeriesStart').value, ghToken: document.getElementById('settingGhToken').value.trim(), ghUser: document.getElementById('settingGhUser').value.trim(), ghRepo: document.getElementById('settingGhRepo').value.trim() };
   saveSettings(s); renderHeader();
   if (s.ghToken && s.ghUser && s.ghRepo) syncAll();
   toast('設定を保存しました');
@@ -805,13 +820,19 @@ document.getElementById('btnClearTranscript').addEventListener('click', () => {
   document.getElementById('voiceTranscript').value = ''; document.getElementById('voiceResultSection').classList.add('hidden');
 });
 document.getElementById('voiceTranscript').addEventListener('input', function () { if (!isRecording) finalText = this.value; });
-document.getElementById('btnSummarize').addEventListener('click', async () => {
+document.getElementById('btnSummarize').addEventListener('click', () => {
   const transcript = document.getElementById('voiceTranscript').value.trim();
   if (!transcript) { toast('書き起こしが空です', 'var(--accent)'); return; }
+  const s = loadSettings();
+  const claudeUrl = s.claudeUrl || 'https://claude.ai';
   const prompt = `以下の音声書き起こしを、note.comの連載「東京から南小国へ」の記事に仕上げてください。\n\n【フォーマット】\n- タイトル：東京から南小国へ vol.XX　〇〇〇〇（冒頭1行）\n- 本文1500〜2500字（ですます体）\n- 見出し（##）を2〜4個\n- 写真プレースホルダー [写真：〇〇の様子] を2〜3箇所\n- 末尾にハッシュタグ5〜7個\n\n【書き起こし】\n${transcript}`;
-  try { await navigator.clipboard.writeText(prompt); } catch { const ta = document.createElement('textarea'); ta.value = prompt; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }
-  window.open('https://claude.ai', '_blank');
-  toast('プロンプトをコピーしました。claude.aiに貼り付けてください');
+  const ta = document.createElement('textarea');
+  ta.value = prompt; ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  document.body.removeChild(ta);
+  window.open(claudeUrl, '_blank');
+  toast('コピーしました。claude.aiに貼り付けてください');
 });
 document.getElementById('btnCopyResult').addEventListener('click', async () => {
   const text = document.getElementById('voiceResult').value;
