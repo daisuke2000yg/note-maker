@@ -553,7 +553,7 @@ function sendChat() {
   const userMsg = inputEl.value.trim();
   if (!userMsg) return;
   const s = loadSettings();
-  const claudeUrl = s.claudeUrl || 'https://claude.ai';
+  const claudeUrl = s.claudeUrl || 'https://claude.ai/project/019e0339-0e0f-752a-bf69-04a1c5eb932c';
   const title = document.getElementById('editorTitle').value;
   const body  = document.getElementById('editorBody').value;
   const prompt = `連載「東京から南小国へ」の記事について相談です。\n${title ? `タイトル：「${title}」\n` : ''}${body ? `本文（冒頭500字）：\n${body.slice(0, 500)}\n\n` : ''}相談：${userMsg}`;
@@ -824,7 +824,7 @@ document.getElementById('btnSummarize').addEventListener('click', () => {
   const transcript = document.getElementById('voiceTranscript').value.trim();
   if (!transcript) { toast('書き起こしが空です', 'var(--accent)'); return; }
   const s = loadSettings();
-  const claudeUrl = s.claudeUrl || 'https://claude.ai';
+  const claudeUrl = s.claudeUrl || 'https://claude.ai/project/019e0339-0e0f-752a-bf69-04a1c5eb932c';
   const prompt = `以下の音声書き起こしを、note.comの連載「東京から南小国へ」の記事に仕上げてください。\n\n【フォーマット】\n- タイトル：東京から南小国へ vol.XX　〇〇〇〇（冒頭1行）\n- 本文1500〜2500字（ですます体）\n- 見出し（##）を2〜4個\n- 写真プレースホルダー [写真：〇〇の様子] を2〜3箇所\n- 末尾にハッシュタグ5〜7個\n\n【書き起こし】\n${transcript}`;
   const ta = document.createElement('textarea');
   ta.value = prompt; ta.style.position = 'fixed'; ta.style.opacity = '0';
